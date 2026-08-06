@@ -165,4 +165,3 @@ ref: $(BUILD_DIR)/libposix.a
 
 opt: $(BUILD_DIR)/libposix.a
 
-
