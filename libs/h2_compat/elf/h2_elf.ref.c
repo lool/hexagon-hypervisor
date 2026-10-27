@@ -21,7 +21,7 @@
 #include <errno.h>
 #include <angel.h>
 
-char errstr[ERRSTR_LEN];
+static char errstr[ERRSTR_LEN];
 
 void elf_error(char *str1, char *str2) {
 	int err = sys_errno();

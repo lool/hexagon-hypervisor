@@ -526,3 +526,16 @@ __attribute__((weak)) DIR *fdopendir(int fd) {
  * Picolibc
  */
 int _Geterrno(void) { return errno; }
+
+/*
+ * picolibc's strerror_r() calls the weak _user_strerror() for unknown error
+ * numbers.  Left undefined it resolves to address 0, and the guest is linked
+ * far from 0 (H2K_GUEST_START), so the PC-relative call can't reach it and
+ * the link fails (R_HEX_B22_PCREL out of range).  Provide the default.
+ */
+__attribute__((weak)) char *_user_strerror(int errnum, int internal, int *errptr) {
+	(void)errnum;
+	(void)internal;
+	(void)errptr;
+	return NULL;
+}
