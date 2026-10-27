@@ -117,6 +117,11 @@ endif
 endif
 endif
 
+# Toolchains other than the Hexagon SDK (e.g. CodeLinaro) have no
+# hexagon-elfcopy / hexagon-llvm-objcopy; fall back to hexagon-objcopy.
+ifeq ($(shell command -v $(ELFCOPY) 2>/dev/null),)
+ELFCOPY := hexagon-objcopy
+endif
 export ELFCOPY
 
 DEVSIM ?= devsim
@@ -133,6 +138,15 @@ export RUN_TOOLSIM := hexagon-sim $(TOOLSIM_EXTRA) --nullptr 0 --simulated_retur
 #export RUN_TOOLSIM := hexagon-sim 
 
 export TOOLARCH := $(ARCHV)
+
+# The SDK linker takes the architecture as -mvXX; ld.lld (used by PICOLIBC
+# builds with an upstream toolchain) reads -m as an emulation and rejects it,
+# and gets the architecture from the input objects anyway.
+ifeq ($(PICOLIBC),1)
+export LD_ARCH_FLAG :=
+else
+export LD_ARCH_FLAG = -Wl,-mv$(TOOLARCH)
+endif
 export KERNEL_TOOLARCH := $(ARCHV)
 ifeq (60, $(TOOLARCH))
 export KERNEL_TOOLARCH := 61
