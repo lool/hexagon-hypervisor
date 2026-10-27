@@ -104,9 +104,15 @@
 #define Q6_SS_BASE_VA 0xffc00000  // leaves at most 4M for tmpmap at 0xff800000
 #define QDSP6SS_PUB_PRIV_OFFSET 0x80000
 
-#define L2CFG_BASE_VA 0xffd00000
+/*
+ * The 4M device page covers Q6_SS_BASE_VA..0xffffffff, so the other pinned
+ * windows must stay below it (overlapping entries are a multi-TLB-match
+ * fault): L2CFG is a 1M page, angel a 4K page, between tmpmap (0xff800000)
+ * and Q6_SS_BASE_VA.
+ */
+#define L2CFG_BASE_VA 0xffa00000
 
-#define ANGEL_VA 0xffe00000
+#define ANGEL_VA 0xffb00000
 #define ANGEL_PG_SIZE SIZE_4K
 
 #if ARCHV == 4
