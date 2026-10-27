@@ -58,8 +58,16 @@ OPTIMIZE=-O2
 
 BOOTVM_PROG := loadlinux
 
-CFLAGS = -Wall -G0 -g $(OPTIMIZE) -mv${TOOLARCH} -DARCHV=${ARCHV} -I. -Iinc -Isrc -I$(INSTALLPATH)/include -I$(KERNELPATH)/include -L. -L$(INSTALLPATH)/lib $(EXTRA_CFLAGS)
-LDFLAGS = -L$(INSTALLPATH)/lib -moslib=h2
+ifeq ($(PICOLIBC),1)
+OSLIB_CFLAGS  = --target=hexagon-h2-elf --cstdlib=picolibc
+OSLIB_LDFLAGS = --target=hexagon-h2-elf --cstdlib=picolibc -Qunused-arguments
+else
+OSLIB_CFLAGS  =
+OSLIB_LDFLAGS = -moslib=h2
+endif
+
+CFLAGS = $(OSLIB_CFLAGS) -Wall -G0 -g $(OPTIMIZE) -mv${TOOLARCH} -DARCHV=${ARCHV} -I. -Iinc -Isrc -I$(INSTALLPATH)/include -I$(KERNELPATH)/include -L. -L$(INSTALLPATH)/lib $(EXTRA_CFLAGS)
+LDFLAGS = -L$(INSTALLPATH)/lib $(OSLIB_LDFLAGS)
 
 include ../scripts/Makefile.inc.config
 include ../scripts/Makefile.inc.opensource
