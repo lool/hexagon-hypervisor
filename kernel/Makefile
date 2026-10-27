@@ -183,6 +183,10 @@ endif
 
 $(ALL_OFILES): $(DEST_HFILES)
 
+# offsets.s needs every installed header except the one it generates
+# (depending on "includes" would be circular).
+$(BUILD_DIR)/offsets.s: $(filter-out $(BUILD_DIR)/include/asm_offsets.h,$(DEST_HFILES))
+
 ifeq ($(ARCHV),3)
 OPT_OFILES := $(OPT_V3_OFILES)
 endif
