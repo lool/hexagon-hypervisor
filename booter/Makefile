@@ -22,10 +22,13 @@ BOOTVM_IMAGE_HEAP_SIZE := 0x1000000
 all: $(BUILD_DIR)/hello $(BUILD_DIR)/should_crash $(BUILD_DIR)/should_pagefault $(BUILD_DIR)/bigio $(BOOTVM_PROG)
 
 ifeq ($(PICOLIBC),1)
-OSLIB_CFLAGS  = --target=hexagon-h2-elf --cstdlib=picolibc
+# -G0: lld has no small-data (GP-relative) relocation support for this layout.
+OSLIB_CFLAGS  = --target=hexagon-h2-elf --cstdlib=picolibc -G0
 OSLIB_LDFLAGS = --target=hexagon-h2-elf --cstdlib=picolibc
-# Derive template path from the resolved compiler location: bin/../templates/staticExecutable/
-PICOLIBC_LCS := $(abspath $(dir $(shell which $(CC)))/../templates/staticExecutable/static-executable-h2-picolibc.lcs.template)
+# Guest linker script: the Hexagon SDK's template when the compiler has one,
+# otherwise H2's own stake/guest_picolibc.x (installed into scripts/).
+PICOLIBC_SDK_LCS := $(abspath $(dir $(shell which $(CC)))/../templates/staticExecutable/static-executable-h2-picolibc.lcs.template)
+PICOLIBC_LCS := $(if $(wildcard $(PICOLIBC_SDK_LCS)),$(PICOLIBC_SDK_LCS),$(INSTALLPATH)/scripts/guest_picolibc.x)
 GUEST_LDSCRIPT = -Wl,--script=$(PICOLIBC_LCS)
 else
 OSLIB_CFLAGS  =

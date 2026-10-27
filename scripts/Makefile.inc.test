@@ -38,7 +38,10 @@ include $(H2DIR)/scripts/Makefile.inc.tools
 
 ifeq ($(PICOLIBC),1)
 TARGET_FLAG = --target=hexagon-h2-elf --cstdlib=picolibc
-PICOLIBC_LCS := $(abspath $(dir $(shell which $(CC)))/../templates/staticExecutable/static-executable-h2-picolibc.lcs.template)
+# Guest linker script: the Hexagon SDK's template when the compiler has one,
+# otherwise H2's own stake/guest_picolibc.x (installed into scripts/).
+PICOLIBC_SDK_LCS := $(abspath $(dir $(shell which $(CC)))/../templates/staticExecutable/static-executable-h2-picolibc.lcs.template)
+PICOLIBC_LCS := $(if $(wildcard $(PICOLIBC_SDK_LCS)),$(PICOLIBC_SDK_LCS),$(INSTALLPATH)/scripts/guest_picolibc.x)
 PICOLIBC_KERNEL_LCS := $(INSTALLPATH)/scripts/vapa_kernel_picolibc.x
 else
 TARGET_FLAG =
