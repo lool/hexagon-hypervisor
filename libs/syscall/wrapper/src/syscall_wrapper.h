@@ -15,6 +15,8 @@
 #include <sys/times.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
+/* Some picolibc builds have no getrlimit()/struct rlimit; the stubs only need the tag. */
+struct rlimit;
 #include <sys/statvfs.h>
 #include <errno.h>
 #include <sys/time.h>
