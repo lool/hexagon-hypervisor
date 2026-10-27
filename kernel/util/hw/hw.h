@@ -511,21 +511,30 @@ static inline void H2K_l2unlock()
 }
 
 #if ARCHV >= 68
+/*
+ * dmtlbsynch, dmcfgrd and dmcfgwr are not known to LLVM's Hexagon assembler,
+ * so emit their encodings directly, with fixed registers:
+ *   Y6_dmtlbsynch  10101000000-----PP-----1111ddddd   r0 = dmtlbsynch
+ *   Y6_dmcfgrd     10101000000sssssPP------101ddddd   r0 = dmcfgrd(r0)
+ *   Y6_dmcfgwr     10101000000sssssPP-ttttt110-----   dmcfgwr(r0, r1)
+ * (PP = 11: end of packet; these must be alone in their packet.)
+ */
 static inline u32_t H2K_dmtlbsynch() {
-	u32_t ret;
-	asm volatile ("%0 = dmtlbsynch;":"=r" (ret));
+	register u32_t ret asm("r0");
+	asm volatile (".word 0xa800c1e0 // r0 = dmtlbsynch" : "=r" (ret) : : "memory");
 	return(ret);
 }
 
 static inline u32_t H2K_dmcfgrd(u32_t index) {
-	u32_t ret;
-	asm volatile ("%0 = dmcfgrd(%1);" : "=r" (ret) : "r" (index));
-	return(ret);
+	register u32_t r0 asm("r0") = index;
+	asm volatile (".word 0xa800c0a0 // r0 = dmcfgrd(r0)" : "+r" (r0) : : "memory");
+	return(r0);
 }
 
 static inline void H2K_dmcfgwr(u32_t index, u32_t data) {
-
-	asm volatile ("dmcfgwr(%0, %1);" : : "r" (index), "r" (data));
+	register u32_t r0 asm("r0") = index;
+	register u32_t r1 asm("r1") = data;
+	asm volatile (".word 0xa800c1c0 // dmcfgwr(r0, r1)" : : "r" (r0), "r" (r1) : "memory");
 }
 #endif
 
