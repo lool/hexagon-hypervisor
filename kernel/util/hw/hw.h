@@ -440,35 +440,41 @@ static inline int IS_BKL_LOCKED(void)
 
 #if (ARCHV >= 3)
 
-#define MAKE_SETGET(REG) \
-static inline u32_t H2K_get_##REG() \
+#define MAKE_SETGET_AS(NAME, REG) \
+static inline u32_t H2K_get_##NAME() \
 { u32_t ret; asm volatile (" %0 = " #REG : "=r"(ret)); return ret; } \
-static inline void H2K_set_##REG(u32_t val) \
+static inline void H2K_set_##NAME(u32_t val) \
 { asm volatile ( #REG " = %0" : : "r"(val)); }
+#define MAKE_SETGET(REG) MAKE_SETGET_AS(REG, REG)
 
 #else
 
-#define MAKE_SETGET(REG) \
-static inline u32_t H2K_get_##REG() \
+#define MAKE_SETGET_AS(NAME, REG) \
+static inline u32_t H2K_get_##NAME() \
 { return 0; } \
-static inline void H2K_set_##REG(u32_t val) \
+static inline void H2K_set_##NAME(u32_t val) \
 { }
+#define MAKE_SETGET(REG) MAKE_SETGET_AS(REG, REG)
 
 #endif
 
+/*
+ * LLVM's assembler only knows some PMU register aliases; name the others by
+ * system register number so any LLVM-based assembler accepts them.
+ */
 MAKE_SETGET(pmucfg)
 MAKE_SETGET(pmuevtcfg)
-MAKE_SETGET(pmuevtcfg1)
-MAKE_SETGET(pmustid0)
-MAKE_SETGET(pmustid1)
+MAKE_SETGET_AS(pmuevtcfg1, s54)
+MAKE_SETGET_AS(pmustid0, s53)
+MAKE_SETGET_AS(pmustid1, s55)
 MAKE_SETGET(pmucnt0)
 MAKE_SETGET(pmucnt1)
 MAKE_SETGET(pmucnt2)
 MAKE_SETGET(pmucnt3)
-MAKE_SETGET(pmucnt4)
-MAKE_SETGET(pmucnt5)
-MAKE_SETGET(pmucnt6)
-MAKE_SETGET(pmucnt7)
+MAKE_SETGET_AS(pmucnt4, s44)
+MAKE_SETGET_AS(pmucnt5, s45)
+MAKE_SETGET_AS(pmucnt6, s46)
+MAKE_SETGET_AS(pmucnt7, s47)
 MAKE_SETGET(elr)
 MAKE_SETGET(gp)
 
@@ -480,6 +486,7 @@ MAKE_SETGET(ccr)
 #endif
 
 #undef MAKE_SETGET
+#undef MAKE_SETGET_AS
 
 static inline void H2K_dccleana(void *ptr)
 {
