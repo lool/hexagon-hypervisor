@@ -285,7 +285,7 @@ static inline u32_t H2K_get_ipend()
 	asm volatile ("%0 = ipend;":"=r" (ret));
 	return(ret);
 #else
-	asm volatile ("%0 = ipendad;":"=r" (ret));
+	asm volatile ("%0 = s20;":"=r" (ret));  // ipendad (no LLVM alias)
 	return(ret & 0xff);
 #endif
 }
@@ -297,7 +297,7 @@ static inline u32_t H2K_get_iad()
 	asm volatile ("%0 = iad;":"=r" (ret));
 	return(ret);
 #else
-	asm volatile ("%0 = ipendad;":"=r" (ret));
+	asm volatile ("%0 = s20;":"=r" (ret));  // ipendad (no LLVM alias)
 	return((ret >> 16) & 0xff);
 #endif
 }
