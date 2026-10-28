@@ -76,11 +76,12 @@ s32_t H2K_vm_check_interrupts(H2K_thread_context *me) {
 	return intno;
 }
 
-void TH_call_vm_do_work(H2K_thread_context *x)
+s32_t TH_call_vm_do_work(H2K_thread_context *x)
 {
 	if (setjmp(env) == 0) {
-		H2K_vm_do_work_withlock(x);
+		return H2K_vm_do_work_withlock(x);
 	}
+	return -2;  // thread stopped
 }
 
 H2K_kg_t H2K_kg;
@@ -140,6 +141,35 @@ int main()
 	if (!TH_saw_vm_event) FAIL("Didn't do a VM event / 1");
 	if (a.vmstatus & H2K_VMSTATUS_VMWORK) FAIL("VMWORK not cleared (IE, int 1)");
 	TH_saw_thread_stop = TH_saw_vm_event = TH_saw_interrupt_get = 0;
+
+	/*
+	 * VMWORK already consumed (cleared by an earlier call while IE was
+	 * off) and an interrupt still pending in the controller: with IE still
+	 * off, the pending interrupt must be reported (peeked), not -1.
+	 * Otherwise a vmwait with IE off goes to sleep and is never woken: the
+	 * interrupt was already delivered and won't be posted again.  Linux
+	 * idles this way (arch_cpu_idle() calls __vmwait() with IRQs off).
+	 */
+	a.vmstatus = 0;
+	TH_interrupt_peek_retval = 5;
+	if (TH_call_vm_do_work(&a) != 5) FAIL("Lost pending interrupt (no VMWORK, no IE)");
+	if (!TH_saw_interrupt_peek) FAIL("Didn't see interrupt peek (no VMWORK, no IE)");
+	if (TH_saw_interrupt_get) FAIL("Saw interrupt get while !IE");
+	if (TH_saw_vm_event) FAIL("Did a VM event while !IE");
+	TH_saw_thread_stop = TH_saw_vm_event = TH_saw_interrupt_get = TH_saw_interrupt_peek = 0;
+
+	/* Same, nothing pending: -1, so vmwait may sleep. */
+	a.vmstatus = 0;
+	TH_interrupt_peek_retval = -1;
+	if (TH_call_vm_do_work(&a) != -1) FAIL("Spurious interrupt (no VMWORK, no IE)");
+	TH_saw_thread_stop = TH_saw_vm_event = TH_saw_interrupt_get = TH_saw_interrupt_peek = 0;
+
+	/* No VMWORK, IE on: nothing to do, and the controller isn't touched. */
+	a.vmstatus = H2K_VMSTATUS_IE;
+	if (TH_call_vm_do_work(&a) != -1) FAIL("Spurious work (no VMWORK, IE)");
+	if (TH_saw_interrupt_peek || TH_saw_interrupt_get) FAIL("Touched controller (no VMWORK, IE)");
+	if (TH_saw_vm_event) FAIL("Did a VM event (no VMWORK, IE)");
+	TH_saw_thread_stop = TH_saw_vm_event = TH_saw_interrupt_get = TH_saw_interrupt_peek = 0;
 
 	puts("TEST PASSED");
 	return 0;
