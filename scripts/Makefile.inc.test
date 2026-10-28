@@ -37,7 +37,8 @@ include $(H2DIR)/scripts/Makefile.inc.constants
 include $(H2DIR)/scripts/Makefile.inc.tools
 
 ifeq ($(PICOLIBC),1)
-TARGET_FLAG = --target=hexagon-h2-elf --cstdlib=picolibc
+# -G0: lld has no small-data (GP-relative) relocation support for this layout.
+TARGET_FLAG = --target=hexagon-h2-elf --cstdlib=picolibc -G0
 # Guest linker script: the Hexagon SDK's template when the compiler has one,
 # otherwise H2's own stake/guest_picolibc.x (installed into scripts/).
 PICOLIBC_SDK_LCS := $(abspath $(dir $(shell which $(CC)))/../templates/staticExecutable/static-executable-h2-picolibc.lcs.template)
@@ -185,7 +186,7 @@ H2K_KERNEL_NPAGES ?= 0
 ifeq ($(PICOLIBC),1)
 LDFLAGS += -Wl,--defsym=__bootvm_entry_point=_start -Wl,--defsym=__bootvm_entry=_start -Wl,--defsym=H2K_KERNEL_NPAGES=$(H2K_KERNEL_NPAGES) -Wl,--defsym=H2K_LOAD_ADDR=$(H2K_LINK_ADDR) # -Wl,--defsym=__entry=$(H2K_LOAD_ADDR)
 else
-LDFLAGS += -Wl,--defsym=__bootvm_entry_point=hexagon_pre_main -Wl,--defsym=__bootvm_entry=qdsp6_pre_main -Wl,--defsym=H2K_KERNEL_NPAGES=$(H2K_KERNEL_NPAGES) -Wl,--defsym=H2K_LOAD_ADDR=$(H2K_LINK_ADDR) -Wl,-e=start # -Wl,--defsym=__entry=$(H2K_LOAD_ADDR)
+LDFLAGS += -Wl,--defsym=__bootvm_entry_point=hexagon_pre_main -Wl,--defsym=__bootvm_entry=qdsp6_pre_main -Wl,--defsym=H2K_KERNEL_NPAGES=$(H2K_KERNEL_NPAGES) -Wl,--defsym=H2K_LOAD_ADDR=$(H2K_LINK_ADDR) -Wl,--entry=start # -Wl,--defsym=__entry=$(H2K_LOAD_ADDR)
 endif
 
 ifdef BOOT
@@ -216,7 +217,7 @@ ifeq ($(PICOLIBC),1)
 #   override libh2kernel.a symbols; the kernel boot chain pulls in archive .o files
 #   that also define these symbols, so we need this flag to let test.o win.
 # - vapa_kernel_picolibc.x provides __stack/__bss_size/TLS symbols for picolibc
-LDFLAGS += $(TARGET_FLAG) -Wl,-e=start \
+LDFLAGS += $(TARGET_FLAG) -Wl,--entry=start \
            -Wl,--section-start=.start=$(H2K_LINK_ADDR) \
            -Wl,--defsym=HEAP_SIZE=$(H2K_HEAP_SIZE) \
            -Wl,--defsym=STACK_SIZE=$(H2K_STACK_SIZE) \
@@ -263,7 +264,7 @@ ifeq ($(PICOLIBC),1)
 # Same approach as STANDALONE: toolchain default crt0, kernel LCS.
 LDFLAGS += ${OSLIB} -lh2kernel -lh2 -lh2check -lsyscall_wrapper -L ${INSTALLPATH}/lib \
            -Wl,--whole-archive -llocks -Wl,--no-whole-archive \
-           -Wl,-e=start \
+           -Wl,--entry=start \
            -Wl,--section-start=.start=$(H2K_LINK_ADDR) \
            -Wl,--defsym=__bootvm_entry_point=_start \
            -Wl,--defsym=__bootvm_entry=_start
