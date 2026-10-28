@@ -19,7 +19,16 @@ s32_t H2K_vm_do_work_withlock(H2K_thread_context *me)
 		H2K_thread_stop_withlock(me->vmblock->status, me);
 	}
 
-	if (!(me->vmstatus & H2K_VMSTATUS_VMWORK)) return -1;
+	if (!(me->vmstatus & H2K_VMSTATUS_VMWORK)) {
+		if (me->vmstatus & H2K_VMSTATUS_IE) return -1;
+		/*
+		 * Guest interrupts are disabled, and VMWORK may have been
+		 * cleared by an earlier call while an interrupt stayed
+		 * pending in the controller: look there rather than report
+		 * "nothing pending". With IE clear, this only peeks.
+		 */
+		return H2K_vm_check_interrupts(me);
+	}
 
 	H2K_atomic_clrbit(&me->atomic_status_word,H2K_VMSTATUS_VMWORK_BIT);
 	return H2K_vm_check_interrupts(me);
